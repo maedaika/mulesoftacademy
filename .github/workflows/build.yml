@@ -1,0 +1,123 @@
+name: Build and Deploy to Sandbox
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4 # Atualizado
+
+      - name: Cache dependencies
+        uses: actions/cache@v4    # Atualizado
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v4 # Atualizado
+        with:
+          distribution: 'zulu'
+          java-version: 8 # setup-java v4 suporta java-version 8
+
+      - name: Test with Maven
+        env:
+          KEY: ${{ secrets.decryption_key }}
+        run: mvn test -Dsecure.key="$KEY"
+
+      - name: Upload MUnit reports
+        uses: actions/upload-artifact@v4 # ATUALIZADO
+        with:
+          name: munit-test-reports
+          path: target/site/munit/coverage/
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4 # Atualizado
+
+      - name: Cache dependencies
+        uses: actions/cache@v4    # Atualizado
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v4 # Atualizado
+        with:
+          distribution: 'zulu'
+          java-version: 8
+
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml -DskipMunitTests
+
+      - name: Stamp artifact file name with commit hash
+        run: |
+          artifactName1=$(ls target/*.jar | head -1)
+          commitHash=$(git rev-parse --short "$GITHUB_SHA")
+          artifactName2=$(echo $artifactName1 | sed "s/.jar/-$commitHash.jar/g")
+          mv $artifactName1 $artifactName2
+          echo "Renamed artifact to $artifactName2" # Adicionado para log
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4 # ATUALIZADO
+        with:
+          name: artifacts # Este será o nome do artefato baixado no job de deploy
+          path: target/*.jar
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo # Necessário se o deploy script estiver no repo, mas não para o artifact
+        uses: actions/checkout@v4 # Atualizado (Opcional aqui se você só precisa do artefato)
+
+      - name: Cache dependencies # Opcional aqui, a menos que o deploy use o cache do Maven
+        uses: actions/cache@v4    # Atualizado
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4 # ATUALIZADO
+        with:
+          name: artifacts # Deve corresponder ao nome do artefato carregado no job de build
+          # path: ./ # Opcional: especifica para onde baixar, por padrão é o GITHUB_WORKSPACE
+
+      - name: List files after download # Adicionado para debug
+        run: ls -R
+
+      - name: Deploy to Sandbox
+        env:
+          USERNAME: ${{ secrets.anypoint_platform_username }}
+          PASSWORD: ${{ secrets.anypoint_platform_password }}
+          KEY: ${{ secrets.decryption_key }}
+        run: |
+          # Encontre o arquivo JAR no diretório atual (onde foi baixado)
+          # Se você especificou um 'path' no download-artifact, ajuste aqui.
+          # Por padrão, download-artifact@v4 baixa para o diretório raiz do workspace
+          # mas ele cria um diretório com o nome do artefato, a menos que path seja '.'
+          # Vamos assumir que está na raiz do workspace após download
+          # Se o download-artifact@v4 colocar em um subdiretório chamado 'artifacts':
+          # artifactName=$(ls artifacts/*.jar | head -1)
+          # Se ele baixar diretamente no workspace (com path: .):
+          artifactName=$(ls *.jar | head -1)
+          echo "Deploying $artifactName"
+          mvn deploy -DskipMunitTests -DmuleDeploy \
+            -Dmule.artifact="$artifactName" \
+            -Danypoint.username="$USERNAME" \
+            -Danypoint.password="$PASSWORD" \
+            -Ddecryption.key="$KEY"
