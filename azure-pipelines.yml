@@ -1,0 +1,122 @@
+trigger:
+- DEVELOPMENT-3
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: 'Mulesoft_Login_DEVELOPMENT3'
+
+steps:
+
+
+- task: DownloadSecureFile@1
+  name: DownlaodSettings
+  displayName: 'Download settings.xml'
+  inputs:
+    secureFile: 'settings.xml' # Nome do arquivo seguro
+
+- task: Maven@4
+  name: Package
+  inputs:
+    mavenPomFile: 'pom.xml'
+    goals: 'package'
+    publishJUnitResults: true
+
+- task: Maven@4
+  name: MUnitTest
+  inputs:
+    mavenPomFile: 'pom.xml'
+    goals: 'test'
+
+- task: Maven@4
+  name: CleanInstall
+  inputs:
+    mavenPomFile: 'pom.xml'
+    goals: 'install'
+
+# - task: Bash@3
+#   displayName: 'Deploy to Anypoint Platform'
+#   inputs:
+#     targetType: 'inline'
+#     script: |
+#       curl --location --request POST https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token \
+#       --header 'Content-Type: application/x-www-form-urlencoded' \
+#       --data-urlencode 'client_id=$(connectedapp_id)' \
+#       --data-urlencode 'client_secret=$(connectedapp_secret)' \
+#       --data-urlencode 'grant_type=client_credentials'
+
+#       curl --location 'https://anypoint.mulesoft.com/amc/application-manager/api/v2/orgs/$(organization_id)/environments/$(environment_id)/api/*/deployments' \
+#       --header 'X-ANYPNT-ENV-ID: $(environment_id)' \
+#       --header 'X-ANYPNT-ORG-ID: $(environment_secret)' \
+#       --header 'Content-Type: application/json;charset=UTF-8' \
+#       --header 'Authorization: Bearer df8e8306-46a9-4527-92be-bfde05b32d74' \
+#       --data '{
+#           "name": "HelloWorld",
+#           "labels": [
+#               "beta"
+#           ],
+#           "target": {
+#               "provider": "MC",
+#               "targetId": "cloudhub-ap-southeast-2",
+#               "deploymentSettings": {
+#                   "clustered": false,
+#                   "enforceDeployingReplicasAcrossNodes": false,
+#                   "http": {
+#                       "inbound": {
+#                           "publicUrl": null,
+#                           "pathRewrite": null,
+#                           "lastMileSecurity": false,
+#                           "forwardSslSession": false
+#                       }
+#                   },
+#                   "jvm": {},
+#                   "runtimeVersion": "4.4.0:20230320-2",
+#                   "updateStrategy": "rolling",
+#                   "disableAmLogForwarding": false,
+#                   "persistentObjectStore": false,
+#                   "generateDefaultPublicUrl": false
+#               },
+#               "replicas": 1
+#           },
+#           "application": {
+#               "ref": {
+#                   "groupId": "18a04ea1-3b84-42fb-837a-bbcbe964f394",
+#                   "artifactId": "HelloWorld",
+#                   "version": "1.0.4",
+#                   "packaging": "jar"
+#               },
+#               "assets": [],
+#               "desiredState": "STARTED",
+#               "configuration": {
+#                   "mule.agent.application.properties.service": {
+#                       "applicationName": "HelloWorld",
+#                       "properties": {},
+#                       "secureProperties": {}
+#                   },
+#                   "mule.agent.logging.service": {
+#                       "scopeLoggingConfigurations": []
+#                   }
+#               },
+#               "integrations": {
+#                   "services": {
+#                       "objectStoreV2": {
+#                           "enabled": true
+#                       }
+#                   }
+#               },
+#               "vCores": "0.1"
+#           }
+#       }'
+
+
+- task: Maven@4
+  name: Publish_to_Exchange
+- script: |
+    mvn deploy --settings .maven/settings.xml -DskipMunitTests \
+    -Dclient.id="$(connectedapp_id)" \
+    -Dclient.secret="$(connectedapp_secret)"
+- task: Maven@4
+  name: Deploy_to_CloudHub_2
+- script: |
+    mvn deploy --settings .maven/settings.xml -DskipMunitTests -DmuleDeploy -Dclient.id="$(connectedapp_id)" -Dclient.secret="$(connectedapp_secret)" -Denvironment="$(environment)" -Dtarget="$(target)" -Dreleasechannel="$(release_channel)" -Dreplicas="$(replicas)" -Dvcores="$(vcores)"

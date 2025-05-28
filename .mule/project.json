@@ -1,0 +1,10 @@
+{
+  "modelVersion": "1.0.0",
+  "name": "mulesoftacademy",
+  "version": "1.0.0",
+  "source": "file:///c:/Users/alessandro.maeda/AnypointStudioTestes/mulesoftacademy/pom.xml",
+  "natures": [
+    "mule"
+  ],
+  "components": []
+}

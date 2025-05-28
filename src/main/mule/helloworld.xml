@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="746cb7ce-7b93-4213-bfca-824caa92c8a3" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<flow name="helloworld-api-devopsacademyFlow" doc:id="b21470cc-1bd4-460f-b833-f5f28f438eaf" >
+		<http:listener doc:name="Listener" doc:id="bf3f0232-a072-4512-ba5f-460c3de8c4c9" config-ref="HTTP_Listener_config" path="/hello"/>
+		<set-payload value='Ola DevOps Academy Mulesoft' doc:name="Set Payload" doc:id="793e1e30-f79f-427d-ac35-c46ae216e216" />
+		<logger level="INFO" doc:name="Add log" doc:id="dd0cead4-5d8f-475f-a036-2de1444f4c6a" message="payload"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f1247217-41b2-4df9-a60e-1dcd1f44f1e0" />
+	</flow>
+</mule>

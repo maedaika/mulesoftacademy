@@ -1,0 +1,9 @@
+Principais comandos a serem usados no Git Bash:
+
+git clone + <urldoclone> - faz uma cópia do repositório remoto em um diretório local
+git pull – baixa as atualizações mais recentes da branch remota pra branch local
+git checkout –b + <nomedabranch> - cria uma nova branch
+git checkout + <nomedabranch> - entra na branch escolhida
+git status – verifica os arquivos que estão em sendo modificados
+git commit –m “descrição do commit” – cria uma descrição pro commit
+git push origin + <nomedabranch> - nome da branch para onde se quer enviar os arquivos
