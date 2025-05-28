@@ -116,7 +116,8 @@ jobs:
           # Se ele baixar diretamente no workspace (com path: .):
           artifactName=$(ls *.jar | head -1)
           echo "Deploying $artifactName"
-          mvn deploy -DskipMunitTests -DmuleDeploy \
+          mvn deploy -settings .maven/settings.xml \
+            -DskipMunitTests -DmuleDeploy \
             -Dmule.artifact="$artifactName" \
             -Danypoint.username="$USERNAME" \
             -Danypoint.password="$PASSWORD" \
